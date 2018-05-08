@@ -21,10 +21,51 @@ class Random2DGaussian():
         return np.random.multivariate_normal(self.mean, self.sigma, n)
 
 
-np.random.seed(100)
-G = Random2DGaussian()
-X = G.get_sample(100)
-plt.scatter(X[:,0], X[:,1])
-plt.show()
+def sample_gauss_2d(C, N):
+    '''
+    C - number of classes
+    N - number of data points assigned to specific class
+    '''
+    distributions = []
+    for i in range(C):
+        distributions.append(Random2DGaussian())
+
+    X = np.vstack([d.get_sample(N) for d in distributions])
+    Y_= np.random.randint(0, C, C*N)
+
+    return X,Y_
+
+
+def eval_perf_binary(Y,Y_):
+    tp = sum(np.logical_and(Y==Y_, Y_==True))
+    fn = sum(np.logical_and(Y!=Y_, Y_==True))
+    tn = sum(np.logical_and(Y==Y_, Y_==False))
+    fp = sum(np.logical_and(Y!=Y_, Y_==False))
+    recall = tp / (tp + fn)
+    precision = tp / (tp + fp)
+    accuracy = (tp + tn) / (tp+fn + tn+fp)
+    return accuracy, recall, precision
+
+
+def _precision(Y, i):
+    class_as_one = Y[i:]
+    tp = (class_as_one == 1).sum()
+    fp = (class_as_one == 0).sum()
+    return tp / (tp + fp)
+
+
+def eval_AP(Yr):
+    Yr = np.array(Yr)
+    return np.sum(_precision(Yr, i)*Yr[i] for i in range(len(Yr))) / np.sum(Yr)
+
+
+
+
+if __name__ == '__main__':
+    np.random.seed(100)
+    G = Random2DGaussian()
+    X = G.get_sample(100)
+    plt.scatter(X[:,0], X[:,1])
+    plt.show()
 
 
