@@ -59,6 +59,26 @@ def eval_AP(Yr):
     return np.sum(_precision(Yr, i)*Yr[i] for i in range(len(Yr))) / np.sum(Yr)
 
 
+def eval_perf_multi(Y,Y_):
+    accuracy = sum(Y==Y_) / len(Y)
+    unique_elements = len(np.bincount(Y))
+    ## assuming that len(bincount(Y)) == len(bincount(Y_))
+    conf_mat = np.zeros((unique_elements, unique_elements))
+    for i in range(len(Y)):
+        conf_mat[Y_[i]][Y[i]] += 1
+
+    prec_recall = np.empty((0,2))
+    for i in range(unique_elements):
+        tp = sum(np.logical_and(Y==Y_, Y_==i))
+        fn = sum(np.logical_and(Y!=Y_, Y_==i))
+        tn = sum(np.logical_and(Y==Y_, Y_!=i))
+        fp = sum(np.logical_and(Y!=Y_, Y_!=i))
+        recall = tp / (tp + fn)
+        precision = tp / (tp + fp)
+        #accuracy = (tp + tn) / (tp+fn + tn+fp)
+        prec_recall = np.append(prec_recall, np.array([[precision, recall]]), axis=0)
+    return accuracy, conf_mat, prec_recall
+
 
 import matplotlib as mpl
 def graph_data(X, Y_, Y):
@@ -111,23 +131,6 @@ def graph_surface(fun, rect, offset, width=250, height=250):
     plt.pcolormesh(xx, yy, Z, vmin=offset-delta, vmax=offset+delta)
     plt.contour(xx, yy, Z, levels=[offset])
 
-
-
-def sample_gmm_2d(K, C, N):
-    '''
-    K - number of distributions
-    C - number of classes
-    N - number of data points assigned to specific class
-    '''
-    distributions = []
-    classes = []
-    for i in range(K):
-        distributions.append(data.Random2DGaussian())
-        classes.append(np.random.randint(C))
-    
-    X = np.vstack([d.get_sample(N) for d in distributions])
-    Y_ = np.hstack([[c]*N for c in classes])
-    return X,Y_
 
 
 if __name__ == '__main__':
