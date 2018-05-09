@@ -59,6 +59,78 @@ def eval_AP(Yr):
     return np.sum(_precision(Yr, i)*Yr[i] for i in range(len(Yr))) / np.sum(Yr)
 
 
+def eval_perf_multi(Y,Y_):
+    accuracy = sum(Y==Y_) / len(Y)
+    unique_elements = len(np.bincount(Y))
+    ## assuming that len(bincount(Y)) == len(bincount(Y_))
+    conf_mat = np.zeros((unique_elements, unique_elements))
+    for i in range(len(Y)):
+        conf_mat[Y_[i]][Y[i]] += 1
+
+    prec_recall = np.empty((0,2))
+    for i in range(unique_elements):
+        tp = sum(np.logical_and(Y==Y_, Y_==i))
+        fn = sum(np.logical_and(Y!=Y_, Y_==i))
+        tn = sum(np.logical_and(Y==Y_, Y_!=i))
+        fp = sum(np.logical_and(Y!=Y_, Y_!=i))
+        recall = tp / (tp + fn)
+        precision = tp / (tp + fp)
+        #accuracy = (tp + tn) / (tp+fn + tn+fp)
+        prec_recall = np.append(prec_recall, np.array([[precision, recall]]), axis=0)
+    return accuracy, conf_mat, prec_recall
+
+
+import matplotlib as mpl
+def graph_data(X, Y_, Y):
+    '''
+    X  - data (np. array Nx2)
+    Y_ - true classes (np.array Nx1)
+    Y  - predicted classes (np.array Nx1)
+    '''
+    
+    correct = Y_ == Y
+    wrong = Y_ != Y
+    
+    plt.scatter(X[correct, 0], X[correct, 1], marker='o',
+                c=['white' if x else 'grey' for x in Y_[correct]], edgecolors='black')
+    plt.scatter(X[wrong, 0], X[wrong, 1], marker='s',
+                c=['white' if x else 'grey' for x in Y_[wrong]], edgecolors='black')
+
+
+def myDummyDecision(X):
+    scores = X[:,0] + X[:,1] - 5
+    return scores
+
+
+
+
+
+
+def graph_surface(fun, rect, offset, width=250, height=250):
+    '''
+      fun    ... the decision function (Nx2)->(Nx1)
+      rect   ... he domain in which we plot the data:
+                 ([x_min,y_min], [x_max,y_max])
+      offset ... the value of the decision function
+                 on the border between the classes;
+                 we typically have:
+                 offset = 0.5 for probabilistic models
+                    (e.g. logistic regression)
+                 offset = 0 for models which do not squash 
+                    classification scores (e.g. SVM)
+      width,height ... rezolucija koordinatne mreže
+    '''
+    (x_min, y_min), (x_max, y_max) = rect
+    xx, yy = np.meshgrid(np.linspace(x_min, x_max, width), np.linspace(y_min, y_max, height))
+    XX = np.c_[xx.ravel(), yy.ravel()]
+
+    Z = fun(XX).reshape(xx.shape)
+
+    delta = np.abs(Z-offset).max() 
+    #plt.pcolormesh(xx, yy, Z, vmin=offset-delta, vmax=offset+delta)
+    plt.pcolormesh(xx, yy, Z, vmin=offset-delta, vmax=offset+delta)
+    plt.contour(xx, yy, Z, levels=[offset])
+
 
 
 if __name__ == '__main__':
