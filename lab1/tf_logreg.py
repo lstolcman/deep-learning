@@ -6,7 +6,7 @@ import tensorflow as tf
 
 
 class TFLogreg:
-    def __init__(self, D, C, param_delta=0.5):
+    def __init__(self, D, C, param_delta=0.5, param_lambda=1e-3):
         """Arguments:
            - D: dimensions of each datapoint 
            - C: number of classes
@@ -19,19 +19,27 @@ class TFLogreg:
         self.Yoh_ = tf.placeholder(tf.float64, [None,C])
         self.W = tf.Variable(np.array([np.random.randn(D) for i in range(C)])) # weights == columns == number of features # CxD
         self.b = tf.Variable(np.array([0.0 for i in range(C)]))
-        
+
         # formulate the model: calculate self.probs
         #   use tf.matmul, tf.nn.softmax
         scores = tf.matmul(self.X, self.W, transpose_b=True) + self.b
         self.probs = tf.nn.softmax(scores)
-        
+
         # formulate the loss: self.loss
         #   use tf.log, tf.reduce_sum, tf.reduce_mean
         # L(W,b|D)=∑_i−logP(Y=y_i|x_i)
-        ##minuslog = -tf.log(self.probs)
-        ##sumlog = tf.reduce_sum(minuslog)
-        ##self.loss = sumlog
-        self.loss = tf.losses.log_loss(self.Yoh_, self.probs)
+        minuslog = -tf.log(self.probs)
+        sumlog = tf.reduce_sum(self.Yoh_ * minuslog, axis=1)
+        self.loss = tf.reduce_mean(sumlog)
+        # add l2 regularization
+        '''
+        @ Ian Goodfellow, Deep Learning, 5.2.2:
+        λ is a value chosen ahead of time that controls the strength of our preference
+        for smaller weights. When λ = 0, we impose no preference, and larger λ forces the
+        weights to become smaller. Minimizing J ( w ) results in a choice of weights that
+        make a tradeoff between fitting the training data and being small.
+        '''
+        self.loss += param_lambda * tf.nn.l2_loss(self.W)
 
         # formulate the training operation: self.train_step
         #   use tf.train.GradientDescentOptimizer,
@@ -76,8 +84,6 @@ class TFLogreg:
         return self.session.run(self.probs, feed_dict={self.X: X})
 
 
-
-
 if __name__ == "__main__":
     # initialize the random number generator
     np.random.seed(100)
@@ -87,10 +93,17 @@ if __name__ == "__main__":
     # instantiate the data X and the labels Yoh_
     X = np.array([[1,3],[1,1],[3,2],[3,3]])
     Y_ = np.array([1,0,2,2])
+    '''
+    Yoh c1 c2 c3
+     x1 0  1  0
+     x2 1  0  0
+     x3 0  0  1
+     x4 0  0  1
+    '''
     Yoh_ = np.zeros((len(X), len(np.bincount(Y_))))
     Yoh_[range(len(Y_)), Y_] = 1
     ## Yoh_s = tf.one_hot(D,C)
-    
+
     '''
     N_classes = 3
     N_examples = 2 # examples from each class, so 3*10=30 in total
@@ -122,6 +135,9 @@ if __name__ == "__main__":
     for i, p in enumerate(X):
         plt.scatter(p[0], p[1], color=c[Y_[i]])
     '''
-    Y = [np.argmax(p) for p in probs]
+    #Y = [np.argmax(p) for p in probs]
+    Y = np.argmax(probs, axis=1)
+
     data.graph_data(X, Y_, Y)
     plt.show()
+
