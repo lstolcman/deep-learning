@@ -115,8 +115,9 @@ if __name__ == '__main__':
 
     Y_ = np.empty((0,0), dtype=np.int64)
     # get class by doing argmax on vector (highest value = predicted class)
-    for v in fcann2_classify(X, w1, b1, w2, b2):
-        Y_ = np.append((Y_), np.argmax(v))
+    ##for v in fcann2_classify(X, w1, b1, w2, b2):
+    ##    Y_ = np.append((Y_), np.argmax(v))
+    Y_= np.argmax(fcann2_classify(X, w1, b1, w2, b2), axis=1) # axis=1 - horizontally
 
     accuracy, conf_mat, prec_recall = data.eval_perf_multi(Y,Y_)
     print('accuracy:', accuracy)
