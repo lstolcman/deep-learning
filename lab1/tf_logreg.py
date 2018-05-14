@@ -84,6 +84,113 @@ class TFLogreg:
         return self.session.run(self.probs, feed_dict={self.X: X})
 
 
+
+class TFDeep:
+    def __init__(self, configuration, activation_f, param_delta=0.5, param_lambda=1e-3):
+        """Arguments:
+           - D: dimensions of each datapoint 
+           - C: number of classes
+           - param_delta: training step
+        """
+        D = configuration[0]
+        C = configuration[-1]
+
+        if len(configuration) < 2:
+            raise ValueError('configuration has to have at least input and output layer')
+        if D != configuration[0]:
+            raise ValueError('Input layer length do not match with configuration')
+        if C != configuration[-1]:
+            raise ValueError('Output layer length do not match with configuration')
+
+        ### data input
+        # declare graph nodes for the data and parameters:
+        # self.X, self.Yoh_, self.W, self.b
+        self.X = tf.placeholder(tf.float64, [None, D])
+        self.Yoh_ = tf.placeholder(tf.float64, [None,C])
+        
+        ## 
+        previous_layer = self.X
+        for i in range(len(configuration)-1):
+            '''
+            eg config = [2, 5, 3]
+            i=0 _prev = 2  _next = 5
+            i=1 _prev = 5  _next = 3
+            '''
+            _prev = configuration[i]
+            _next = configuration[i+1]
+            W = tf.Variable(np.array([np.random.randn(_prev) for i in range(_next)])) # weights == columns == number of features # CxD
+            b = tf.Variable(np.array([0.0 for i in range(_next)]))
+        
+            # formulate the model: calculate self.probs
+            #   use tf.matmul, tf.nn.softmax
+            scores = tf.matmul(previous_layer, W, transpose_b=True) + b
+            
+            ## last layer -> use softmax - output layer
+            if i == (len(configuration)-2):
+                previous_layer = tf.nn.softmax(scores)
+            else:    
+                ## other layers -> use specified activation function
+                previous_layer = activation_f(scores)
+        
+        self.probs = previous_layer
+        # formulate the loss: self.loss
+        #   use tf.log, tf.reduce_sum, tf.reduce_mean
+        # L(W,b|D)=∑_i−logP(Y=y_i|x_i)
+        '''
+        minuslog = -tf.log(self.probs)
+        sumlog = tf.reduce_sum(self.Yoh_ * minuslog, axis=1)
+        self.loss = tf.reduce_mean(sumlog)
+        '''
+        self.loss = tf.reduce_mean(tf.reduce_sum(self.Yoh_ * -tf.log(self.probs), axis=1))
+
+        # formulate the training operation: self.train_step
+        #   use tf.train.GradientDescentOptimizer,
+        #       tf.train.GradientDescentOptimizer.minimize
+        opt = tf.train.GradientDescentOptimizer(param_delta) # defining step
+        self.train_step = opt.minimize(self.loss) # minimizing loss
+
+        # instantiate the execution context: self.session
+        #   use tf.Session
+        self.session = tf.Session()
+
+
+    def train(self, X, Yoh_, param_niter):
+        """Arguments:
+           - X: actual datapoints [NxD]
+           - Yoh_: one-hot encoded labels [NxC]
+           - param_niter: number of iterations
+        """
+        # parameter intiailization
+        #   use tf.global_variables_initializer !! deprecated
+        self.session.run(tf.global_variables_initializer())
+
+        data_in = {self.X: X, self.Yoh_: Yoh_}
+        # optimization loop
+        #   use tf.Session.run
+        ## tf.Session = self.session, so self.session.run()
+        for i in range(param_niter):
+            loss_val = self.session.run(self.loss, feed_dict=data_in)
+            self.session.run(self.train_step, feed_dict=data_in)
+            #if i%int(param_niter/10)==0:
+            #    #print('{} loss: {}'.format(i, loss_val))
+                
+        print('{} loss: {}'.format(i, loss_val))
+
+
+    def eval(self, X):
+        """Arguments:
+           - X: actual datapoints [NxD]
+           Returns: predicted class probabilites [NxC]
+        """
+        #   use tf.Session.run
+        ## tf.Session = self.session, so self.session.run()
+        return self.session.run(self.probs, feed_dict={self.X: X})
+
+
+
+
+
+
 if __name__ == "__main__":
     # initialize the random number generator
     np.random.seed(100)
