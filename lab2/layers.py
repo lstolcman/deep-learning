@@ -392,6 +392,7 @@ class L2Regularizer():
     # L2 regularization is also known as ridge regression or Tikhonov regularization
     # "When we add L2 regularization, the objective function changes to ... "
     return 1/2 * self.weight_decay * np.sum(self.weights * self.weights)
+    # https://jamesmccaffrey.wordpress.com/2017/06/29/implementing-neural-network-l2-regularization/
 
   def backward_params(self):
     """
