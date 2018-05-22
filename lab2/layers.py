@@ -200,8 +200,19 @@ class FC(Layer):
     Returns:
       An ndarray of shape (N, num_outputs)
     """
-    # TODO
-    pass
+
+    '''
+    lab1en:
+        Gradients in a two layer fully connected model
+        s1=W1.x+b1
+
+    lab1.ipynb
+    2. Multi layer classification
+        #hidden layer
+        scores1 = np.dot(X, w1.transpose()) + b1 # NxC
+    '''
+    self.inputs = inputs
+    return np.dot(self.inputs, self.weights.transpose()) + self.bias
 
   def backward_inputs(self, grads):
     """
@@ -210,8 +221,13 @@ class FC(Layer):
     Returns:
       An ndarray of shape (N, num_inputs)
     """
-    # TODO
-    pass
+
+    '''
+    lab1.ipynb
+    2. Multi layer classification
+        dh1 = np.dot(dscores2, w2)  # NxH
+    '''
+    return np.dot(grads, self.weights)
 
   def backward_params(self, grads):
     """
@@ -220,9 +236,15 @@ class FC(Layer):
     Returns:
       List of params and gradient pairs.
     """
-    # TODO
-    grad_weights = ...
-    grad_bias = ...
+
+    '''
+    lab1.ipynb
+    2. Multi layer classification
+        dw1 = np.dot(dscores1.transpose(), X) # HxD
+        db1 = dscores1.sum(axis=0)  # Hx1
+    '''
+    grad_weights = np.dot(grads.transpose(), self.inputs)
+    grad_bias = np.sum(grads, axis=0)
     return [[self.weights, grad_weights], [self.bias, grad_bias], self.name]
 
 
@@ -240,8 +262,22 @@ class ReLU(Layer):
     Returns:
       ndarray of shape (N, C, H, W).
     """
-    # TODO
-    pass
+
+    '''
+    lab1.ipynb
+    2. Multi layer classification
+        #ReLU
+        h1 = np.maximum(0, scores1) #NxC
+
+    ReLU function:
+        ^   o
+        |  o
+        | o
+    oooo|o
+    ----+----->
+    '''
+    self.inputs = inputs
+    return np.maximum(0, self.inputs)
 
   def backward_inputs(self, grads):
     """
@@ -250,9 +286,14 @@ class ReLU(Layer):
     Returns:
       ndarray of shape (N, C, H, W).
     """
-    # TODO
-    pass
 
+    '''
+    lab1.ipynb
+    2. Multi layer classification
+        dscores1[scores1 <= 0] = 0
+    '''
+    grads[self.inputs<=0]=0
+    return grads
 
 class SoftmaxCrossEntropyWithLogits():
   def __init__(self):
@@ -269,8 +310,37 @@ class SoftmaxCrossEntropyWithLogits():
       because then learning rate and weight decay won't depend on batch size.
 
     """
-    # TODO
-    pass
+
+    '''
+    lab1.ipynb
+    2. Multi layer classification
+        # exit/output layer and softmax calculation
+        expscores = np.exp(scores) # NxC
+        sumexp = expscores.sum(axis=1) # Nx1
+        and so on...
+    '''
+    expscores2 = np.exp(x) # NxC
+    sumexp2 = expscores2.sum(axis=1) # Nx1
+    # negative log-likelihood loss
+    probs2 = (expscores2.transpose() / sumexp2).transpose() # NxC
+
+    '''
+    !!!!!!!!!!!!!!!!!!!!!!!
+    y - one hot vector, e.g.:
+    [[1 0 0 o]
+     [0 1 0 0]
+     [0 0 1 0]
+     [0 0 1 0]]
+    y_ - argmaxed 'y' vector, e.g.:
+    [0 1 2 2]
+    '''
+    y_ = np.argmax(y, axis=1)
+
+    correct_class_prob = probs2[range(len(x)), y_]
+    correct_class_logprobs = -np.log(correct_class_prob) # Nx1
+    loss  = correct_class_logprobs.mean() # can average - deivide of num of examples
+
+    return loss
 
   def backward_inputs(self, x, y):
     """
@@ -280,10 +350,24 @@ class SoftmaxCrossEntropyWithLogits():
     Returns:
       Gradient with respect to the x, ndarray of shape (N, num_classes).
     """
-    # Hint: don't forget that we took the average in the forward pass
-    # TODO
-    pass
 
+    '''
+    lab1.ipynb
+    2. Multi layer classification
+        fcann2_classify
+    '''
+    expscores = np.exp(x) # NxC
+    sumexp = expscores.sum(axis=1) # Nx1
+    probs = (expscores.transpose() / sumexp).transpose() 
+
+    #@lab2: Finally, we obtain the gradient with respect to layer inputs as
+    #the difference between the model distribution and the exact distribution:
+    # ∂L/∂x=s(x)−y
+    diff = probs-y
+
+    # Hint: don't forget that we took the average in the forward pass
+    ## so thats why dividing by len(x)
+    return diff/len(x)
 
 class L2Regularizer():
   def __init__(self, weights, weight_decay, name):
@@ -303,16 +387,19 @@ class L2Regularizer():
      Returns:
       Scalar, loss due to the L2 regularization.
     """
-    # TODO
-    pass
+
+    # Goodfellow, 7.1.1
+    # L2 regularization is also known as ridge regression or Tikhonov regularization
+    # "When we add L2 regularization, the objective function changes to ... "
+    return 1/2 * self.weight_decay * np.sum(self.weights * self.weights)
 
   def backward_params(self):
     """
     Returns:
       Gradient of the L2 loss with respect to the regularized weights.
     """
-    # TODO
-    grad_weights = ...
+
+    grad_weights = self.weight_decay * self.weights
     return [[self.weights, grad_weights], self.name]
 
 

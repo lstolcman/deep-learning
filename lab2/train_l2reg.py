@@ -8,8 +8,14 @@ import nn
 
 import layers
 
-DATA_DIR = '/home/kivan/datasets/MNIST/'
-SAVE_DIR = "/home/kivan/source/fer/out/"
+
+DATA_DIR = 'MNIST original'
+SAVE_DIR = 'task2_out'
+import os
+if not os.path.exists(SAVE_DIR):
+    os.makedirs(SAVE_DIR)
+
+
 
 config = {}
 config['max_epochs'] = 8
