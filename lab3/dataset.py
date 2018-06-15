@@ -51,6 +51,12 @@ class Dataset:
         self.num_batches = int(len(self.x) / (self.batch_size * self.sequence_length)) # calculate the number of batches
         self.batches = []
 
+        # Is all the data going to be present in the batches? Why?
+        # What happens if we select a batch size and sequence length larger than the length of the data?
+
+        #######################################
+        #       Convert data to batches       #
+        #######################################
         batch_step = self.batch_size*self.sequence_length
         for i in range(self.num_batches):
             batch_start = batch_step * i
@@ -60,17 +66,12 @@ class Dataset:
             simply the input sequence, but shifted by one symbol
             Therefore, for the input x_t the target y_t we are trying to predict is actually x_t+1.
             '''
-            _input = np.array(self.x[batch_start:batch_end])
-            target = np.array(self.x[batch_start+1:batch_end+1])
+            _input = np.array(self.x[batch_start:batch_end]).reshape(self.batch_size, self.sequence_length)
+            target = np.array(self.x[batch_start+1:batch_end+1]).reshape(self.batch_size, self.sequence_length)
+            # reshape divide vector to chunks, e.g.: [1,2,3,4,5,6].reshape(3,2) -> [[1,2],[3,4],[5,6]]
             self.batches.append((_input, target))
 
         self.batch_index = 0
-        # Is all the data going to be present in the batches? Why?
-        # What happens if we select a batch size and sequence length larger than the length of the data?
-
-        #######################################
-        #       Convert data to batches       #
-        #######################################
 
 
     def next_minibatch(self):
